@@ -51,6 +51,7 @@ def consultar(sistema: str, usuario: str, esquema: dict, nombre_esquema: str,
         st.error("Falta configurar el modelo (MODELO) en los secrets.")
         return respuesta_demo(variante, clave_demo, respaldo_demo), "demo"
 
+    ultimo_error = "sin detalle"
     for intento in range(REINTENTOS):
         try:
             r = _cliente().chat.completions.create(
@@ -63,12 +64,16 @@ def consultar(sistema: str, usuario: str, esquema: dict, nombre_esquema: str,
                 },
             )
             return json.loads(r.choices[0].message.content), "real"
+          
         except ERRORES_TRANSITORIOS as e:
-            print(f"[llm] intento {intento + 1} falló: {type(e).__name__}")
+            ultimo_error = f"{type(e).__name__}: {e}"
+            print(f"[llm] intento {intento + 1} falló: {ultimo_error}", flush=True)
             time.sleep(2 ** intento)  # espera 1, 2, 4 segundos
         except Exception as e:
-            print(f"[llm] error no recuperable: {e}")
+            ultimo_error = f"{type(e).__name__}: {e}"
+            print(f"[llm] error no recuperable: {ultimo_error}", flush=True)
             break
 
     st.warning("El servicio de IA no respondió. Se muestra una respuesta de demostración.")
-    return respuesta_demo(variante, clave_demo, respaldo_demo), "demo"
+    if st.session_state.get("equipo") == "T00":  # diagnóstico solo para el tutor
+        st.code(ultimo_error)
