@@ -31,16 +31,14 @@ def _demo(variante: str) -> dict:
 
 
 def respuesta_demo(variante: str, clave: str, respaldo: dict) -> dict:
-    """Busca una respuesta precalculada; si no existe, usa el respaldo genérico."""
-    return _demo(variante).get(clave, respaldo)
+    """Busca una respuesta precalculada; si no existe, usa el respaldo genérico.
+    Devuelve una copia para no modificar los datos guardados."""
+    return json.loads(json.dumps(_demo(variante).get(clave, respaldo)))
 
 
 def consultar(sistema: str, usuario: str, esquema: dict, nombre_esquema: str,
               variante: str, clave_demo: str, respaldo_demo: dict) -> tuple[dict, str]:
-    """Devuelve (respuesta, modo). modo = 'real' o 'demo'.
-    - sistema: instrucciones del prompt (reglas fijas + campos del equipo).
-    - usuario: lo que escribió el usuario.
-    - esquema: JSON Schema que la respuesta debe cumplir."""
+    """Devuelve SIEMPRE (respuesta, modo). modo = 'real' o 'demo'."""
 
     # Modo demo forzado desde los secrets (contingencia manual)
     if str(st.secrets.get("MODO_DEMO", "no")).lower() == "si":
@@ -64,7 +62,6 @@ def consultar(sistema: str, usuario: str, esquema: dict, nombre_esquema: str,
                 },
             )
             return json.loads(r.choices[0].message.content), "real"
-          
         except ERRORES_TRANSITORIOS as e:
             ultimo_error = f"{type(e).__name__}: {e}"
             print(f"[llm] intento {intento + 1} falló: {ultimo_error}", flush=True)
@@ -77,3 +74,4 @@ def consultar(sistema: str, usuario: str, esquema: dict, nombre_esquema: str,
     st.warning("El servicio de IA no respondió. Se muestra una respuesta de demostración.")
     if st.session_state.get("equipo") == "T00":  # diagnóstico solo para el tutor
         st.code(ultimo_error)
+    return respuesta_demo(variante, clave_demo, respaldo_demo), "demo"
