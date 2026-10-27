@@ -9,14 +9,17 @@ import streamlit as st
 LARGO_MAXIMO_DEFECTO = 1500  # caracteres por campo
 
 
+PESTANA_CONFIG = "config"  # la app siempre lee la pestaña con este nombre
+
+
 def _url_csv(url_sheet: str) -> str | None:
-    """Convierte la URL normal de la Sheet en su URL de descarga CSV."""
+    """Convierte la URL de la Sheet en la URL CSV de la pestaña 'config'.
+    Ignora qué pestaña estaba abierta cuando el equipo copió la URL."""
     m_id = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", url_sheet)
     if not m_id:
         return None
-    m_gid = re.search(r"[#&?]gid=(\d+)", url_sheet)
-    gid = m_gid.group(1) if m_gid else "0"
-    return f"https://docs.google.com/spreadsheets/d/{m_id.group(1)}/export?format=csv&gid={gid}"
+    return (f"https://docs.google.com/spreadsheets/d/{m_id.group(1)}"
+            f"/gviz/tq?tqx=out:csv&headers=1&sheet={PESTANA_CONFIG}")
 
 
 @st.cache_data(ttl=20, show_spinner=False)
