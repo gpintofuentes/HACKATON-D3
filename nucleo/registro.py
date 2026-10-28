@@ -2,10 +2,10 @@
 Este módulo es una salvaguarda: los equipos NO deben modificarlo."""
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import requests
 import streamlit as st
-
-
 
 # Identificadores de los campos del Form (no son secretos)
 CAMPOS = {
@@ -17,14 +17,15 @@ CAMPOS = {
     "modo": "entry.1204640115",
 }
 
+ZONA_HORARIA = ZoneInfo("America/Santiago")
 LARGO_MAXIMO = 4000  # recorta textos muy largos para no exceder el Form
 
 
 def registrar(variante: str, equipo: str, entrada: str, salida: str, modo: str) -> bool:
     """Envía una fila al registro. Devuelve True si se registró.
-    Nunca interrumpe la app: si falla, solo avisa en consola."""
+    Nunca interrumpe la app: si falla, solo avisa en el registro de Streamlit."""
     datos = {
-        CAMPOS["fecha_hora"]: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        CAMPOS["fecha_hora"]: datetime.now(ZONA_HORARIA).strftime("%Y-%m-%d %H:%M:%S"),
         CAMPOS["variante"]: variante,
         CAMPOS["equipo"]: equipo,
         CAMPOS["entrada"]: str(entrada)[:LARGO_MAXIMO],
@@ -35,5 +36,5 @@ def registrar(variante: str, equipo: str, entrada: str, salida: str, modo: str) 
         r = requests.post(st.secrets["REGISTRO_FORM_URL"], data=datos, timeout=5)
         return r.status_code == 200
     except Exception as e:
-        print(f"[registro] fallo al registrar: {e}")
+        print(f"[registro] fallo al registrar: {e}", flush=True)
         return False
