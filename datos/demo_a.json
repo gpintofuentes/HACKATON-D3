@@ -1,1 +1,111 @@
-{}
+{
+ "A01": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Tomar agua caliente con limón en ayunas cura el resfrío en 24 horas.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A01",
+  "que_se_sabe": "El caso A01 dice que no existe evidencia científica de que el agua con limón cure el resfrío. El resfrío es una infección viral que suele mejorar sola en algunos días.",
+  "que_no_se_sabe": "",
+  "que_puedo_hacer": [
+   "No lo compartas como si fuera una cura.",
+   "Revisa si viene de una fuente oficial de salud.",
+   "Antes de reenviarlo, confirma con un profesional o canal de salud confiable."
+  ]
+ },
+ "A03": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Dicen que un banco pide ingresar la clave en un enlace para evitar el bloqueo de la cuenta.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A03",
+  "que_se_sabe": "Ese tipo de mensaje coincide con un caso de phishing. Los bancos no piden claves por mensaje ni por enlaces.",
+  "que_no_se_sabe": "",
+  "que_puedo_hacer": [
+   "No abras el enlace.",
+   "Revisa la cuenta solo en la app o sitio oficial.",
+   "Borra el mensaje y avisa al banco si quieres reportarlo."
+  ]
+ },
+ "A05": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Mañana a las 3 de la tarde viene un terremoto grado 9.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A05",
+  "que_se_sabe": "No hay método científico para predecir la fecha, hora y magnitud exacta de un terremoto.",
+  "que_no_se_sabe": "No se puede confirmar una predicción así con un aviso de un amigo ni con un audio.",
+  "que_puedo_hacer": [
+   "Revisar canales oficiales de emergencia.",
+   "No reenviar el audio como si fuera un aviso confirmado."
+  ]
+ },
+ "A07": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Este invierno será el más frío de los últimos 100 años.",
+  "chequeable": false,
+  "categoria_inchequeable": "futuro",
+  "id_caso_coincidente": "A07",
+  "que_se_sabe": "Es una afirmación sobre el futuro. El corpus dice que no se puede verificar hasta que ocurra.",
+  "que_no_se_sabe": "No se puede confirmar ahora si será el más frío de los últimos 100 años.",
+  "que_puedo_hacer": [
+   "Revisar pronósticos oficiales de la temporada.",
+   "Antes de compartir, verifica si hay un comunicado del servicio meteorológico."
+  ]
+ },
+ "A08": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Foto que muestra un tiburón nadando en una autopista inundada, con el texto: 'Así está la Costanera después de la lluvia de hoy'.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A08",
+  "que_se_sabe": "Hay un caso verificado igual: la imagen es falsa y ha circulado en distintos países después de inundaciones. También se ha visto que aparece publicada años antes.",
+  "que_no_se_sabe": "No se puede confirmar que sea una foto tomada hoy ni que muestre esa autopista en particular.",
+  "que_puedo_hacer": [
+   "Buscar la imagen con una búsqueda inversa antes de compartirla.",
+   "Revisar si aparece en medios o canales oficiales de la zona.",
+   "Si no hay confirmación, no la reenvíes."
+  ]
+ },
+ "A14": {
+  "fuera_de_alcance": false,
+  "afirmacion": "El dueño del almacén de la esquina vende cosas robadas.",
+  "chequeable": false,
+  "categoria_inchequeable": "delito_sin_sentencia",
+  "id_caso_coincidente": "A14",
+  "que_se_sabe": "Acusa a una persona de un delito sin una sentencia. Ese tipo de afirmación no se puede confirmar solo con el mensaje.",
+  "que_no_se_sabe": "No hay pruebas verificables aquí para saber si eso ocurrió o no.",
+  "que_puedo_hacer": [
+   "No compartirlo como hecho.",
+   "Pedir una prueba verificable o una denuncia formal.",
+   "Si hay un problema real, avisar por canales oficiales antes de acusar."
+  ]
+ },
+ "A19": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Lavarse las manos con agua y jabón al menos 20 segundos ayuda a prevenir infecciones.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A19",
+  "que_se_sabe": "Hay un caso verificado que coincide con esta afirmación y la respalda.",
+  "que_no_se_sabe": "No se aportan más detalles sobre en qué contexto se usa esta recomendación.",
+  "que_puedo_hacer": [
+   "Si vas a compartirlo, acompáñalo con una fuente oficial de salud.",
+   "Revisa que el mensaje no agregue datos extra que no estén verificados."
+  ]
+ },
+ "A24": {
+  "fuera_de_alcance": false,
+  "afirmacion": "Un cantante famoso recomienda una inversión que duplica el dinero en una semana.",
+  "chequeable": true,
+  "categoria_inchequeable": "ninguna",
+  "id_caso_coincidente": "A24",
+  "que_se_sabe": "Hay un caso verificado sobre videos manipulados con inteligencia artificial para promover una estafa. Ninguna inversión legítima garantiza duplicar el dinero en una semana.",
+  "que_no_se_sabe": "No se puede confirmar que el cantante realmente haya dicho eso solo con el video compartido.",
+  "que_puedo_hacer": [
+   "Revisar si el video salió en una cuenta oficial del cantante.",
+   "Buscar señales de manipulación o deepfake.",
+   "No hacer clic ni compartir el enlace hasta verificarlo."
+  ]
+ }
+}
