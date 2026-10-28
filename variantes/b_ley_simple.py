@@ -190,4 +190,104 @@ def validar(r: dict, ley: pd.DataFrame) -> tuple[list[dict], int]:
     return buenas, descartadas
 
 
-def mostrar_resultado(r: dict, frases: list[dict],
+def mostrar_resultado(r: dict, frases: list[dict], descartadas: int, ley: pd.DataFrame):
+    info = ley.iloc[0]
+    if r["fuera_de_alcance"]:
+        st.warning("Esa pregunta no se puede responder con los artículos de esta ley "
+                   "o está fuera del alcance de la herramienta.")
+        return
+    if not frases:
+        st.error("No se pudo generar una explicación con respaldo en los artículos. "
+                 "Intenta de nuevo o con otra pregunta.")
+        return
+
+    st.subheader("Explicación en lenguaje claro")
+    for f in frases:
+        st.markdown(f"{f['texto']} *(art. {', '.join(f['articulos'])})*")
+
+    if descartadas:
+        st.caption(f"⚠️ Se descartaron {descartadas} frase(s) porque no citaban "
+                   "un artículo válido de esta ley.")
+    if info["cobertura"] != "completa":
+        st.info(f"Cobertura del corpus para esta ley: {info['cobertura']}. "
+                "La explicación podría no cubrir la ley completa.")
+    if info["origen"] == "equipo":
+        st.caption("📌 Ley agregada por tu equipo: el texto fue verificado por el equipo, "
+                   "no por la plantilla.")
+
+    orden = list(ley["articulo"])
+    citados = sorted({a for f in frases for a in f["articulos"]}, key=orden.index)
+    with st.expander("📄 Ver el texto original de los artículos citados"):
+        for a in citados:
+            fila = ley[ley["articulo"] == a].iloc[0]
+            st.markdown(f"**Artículo {a} · {fila['titulo_articulo']}**")
+            st.write(fila["texto"])
+
+    st.caption(f"🗓️ {info['historia']}")
+    st.markdown(f"🔗 Texto oficial: {info['url_oficial']}")
+
+
+def _etiqueta_ley(leyes: pd.DataFrame, id_ley: str) -> str:
+    nombre = leyes.loc[id_ley, "nombre_ley"]
+    if leyes.loc[id_ley, "origen"] == "equipo":
+        nombre += "  · (agregada por el equipo)"
+    return nombre
+
+
+def main():
+    st.set_page_config(page_title="Variante B", page_icon="📜")
+    cfg = config.panel_config(DEFECTOS)
+
+    st.title(cfg["titulo_app"])
+    salvaguardas.mostrar_aviso()
+
+    equipo = salvaguardas.ingresar_equipo()
+    if not equipo:
+        st.stop()
+
+    st.write(cfg["texto_bienvenida"])
+    corpus = corpus_del_equipo(cargar_corpus())
+
+    leyes = corpus.drop_duplicates("id_ley").set_index("id_ley")
+    id_ley = st.selectbox("Ley", leyes.index.tolist(),
+                          format_func=lambda i: _etiqueta_ley(leyes, i))
+    ley = corpus[corpus["id_ley"] == id_ley]
+
+    pregunta = st.text_input("¿Tienes una pregunta específica sobre esta ley? (opcional)",
+                             placeholder="Ej: ¿Me pueden multar si...?")
+
+    if st.button(cfg["texto_boton"], type="primary"):
+        if not salvaguardas.consumir_cuota(equipo):
+            st.error("Tu equipo agotó su cuota de consultas.")
+            st.stop()
+        mensaje = pregunta.strip() or "Explícame esta ley en lenguaje claro."
+        clave_demo = id_ley if not pregunta.strip() else "libre"
+
+        with st.spinner("Leyendo la ley..."):
+            r, modo = llm.consultar(armar_sistema(cfg, ley), mensaje, ESQUEMA,
+                                    "explicacion_ley", VARIANTE, clave_demo, RESPALDO_DEMO)
+        frases, descartadas = validar(r, ley)
+        registro.registrar(VARIANTE, equipo, f"{id_ley} | {mensaje}",
+                           json.dumps({"frases": frases, "descartadas": descartadas},
+                                      ensure_ascii=False), modo)
+        st.session_state["ultimo_b"] = (r, frases, descartadas, id_ley, mensaje)
+
+    if "ultimo_b" in st.session_state:
+        r, frases, descartadas, id_ult, mensaje = st.session_state["ultimo_b"]
+        ley_ult = corpus[corpus["id_ley"] == id_ult]
+        if ley_ult.empty:  # la ley fue quitada de la Sheet después de consultarla
+            st.session_state.pop("ultimo_b")
+        else:
+            st.divider()
+            mostrar_resultado(r, frases, descartadas, ley_ult)
+
+            # Verificación humana: ¿se entendió? (queda registrada como indicador)
+            st.divider()
+            claridad = st.radio("¿Te quedó clara la explicación?",
+                                ["Sí", "Más o menos", "No"], index=None)
+            if claridad and st.button("Registrar mi respuesta"):
+                registro.registrar(VARIANTE, equipo, f"{id_ult} | {mensaje}",
+                                   f"CLARIDAD: {claridad}", "decision")
+                st.success("Respuesta registrada. ¡Gracias!")
+
+    st.caption(f"Consultas restantes del equipo: {salvaguardas.cuota_restante(equipo)}")
