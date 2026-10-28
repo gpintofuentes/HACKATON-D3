@@ -1,6 +1,7 @@
 """Variante A · 'Pausa antes de compartir'.
 La IA extrae y clasifica la afirmación y busca un caso en el corpus.
-La CALIFICACIÓN siempre viene del corpus, nunca de la IA."""
+La CALIFICACIÓN siempre viene del corpus, nunca de la IA.
+El corpus = casos base (CSV) + casos validados de la pestaña 'casos_extra' del equipo."""
 
 import json
 from pathlib import Path
@@ -12,6 +13,16 @@ from nucleo import config, llm, registro, salvaguardas
 
 VARIANTE = "A"
 RUTA_CORPUS = Path(__file__).resolve().parent.parent / "datos" / "a_casos.csv"
+PESTANA_EXTRA = "casos_extra"
+
+COLUMNAS = ["id_caso", "tema", "formato", "texto_viral", "afirmacion_central", "chequeable",
+            "categoria_inchequeable", "calificacion", "explicacion", "senales_alerta",
+            "fuente_url", "origen_dato"]
+OBLIGATORIAS = ["id_caso", "texto_viral", "afirmacion_central", "chequeable",
+                "calificacion", "explicacion"]
+CALIF_CHEQUEABLE = ["Verdadero", "Engañoso", "Falso", "Sin evidencia"]
+MAX_EXTRA = 30
+LARGO_MAX_EXTRA = 1000
 
 # Valores por defecto: deben coincidir con los campos de la Sheet plantilla A
 DEFECTOS = {
@@ -86,6 +97,77 @@ def cargar_corpus() -> pd.DataFrame:
     return pd.read_csv(RUTA_CORPUS, dtype=str).fillna("")
 
 
+def validar_extra(extra: pd.DataFrame, ids_base: set) -> tuple[pd.DataFrame, list[str]]:
+    """Valida las filas de 'casos_extra'. Devuelve (filas válidas, errores por fila)."""
+    validas, errores = [], []
+    vistos = set(ids_base)
+    for i, fila in extra.iterrows():
+        f = {c: str(fila[c]).strip() for c in COLUMNAS}
+        n_fila = i + 2  # fila 1 = encabezados en la Sheet
+        if not any(f.values()) or f["id_caso"].upper() == "EJEMPLO":
+            continue
+
+        problemas = []
+        vacias = [c for c in OBLIGATORIAS if not f[c]]
+        if vacias:
+            problemas.append("faltan " + ", ".join(vacias))
+
+        f["chequeable"] = f["chequeable"].lower()
+        calif = next((c for c in CALIF_CHEQUEABLE + ["No chequeable"]
+                      if c.lower() == f["calificacion"].lower()), None)
+        if f["chequeable"] == "si":
+            f["categoria_inchequeable"] = ""
+            if calif not in CALIF_CHEQUEABLE:
+                problemas.append("si es chequeable, la calificación debe ser "
+                                 + ", ".join(CALIF_CHEQUEABLE))
+        elif f["chequeable"] == "no":
+            if f["categoria_inchequeable"] not in CATEGORIAS or f["categoria_inchequeable"] == "ninguna":
+                problemas.append("falta una categoría de lo no chequeable válida")
+            if calif != "No chequeable":
+                problemas.append("si no es chequeable, la calificación debe ser 'No chequeable'")
+        else:
+            problemas.append("'chequeable' debe ser si o no")
+
+        if f["id_caso"] and f["id_caso"] in vistos:
+            problemas.append(f"el id '{f['id_caso']}' ya existe")
+        if f["fuente_url"] and not f["fuente_url"].startswith(("http://", "https://")):
+            problemas.append("la fuente_url debe empezar con http")
+        if max(len(f["texto_viral"]), len(f["explicacion"])) > LARGO_MAX_EXTRA:
+            problemas.append(f"texto_viral o explicacion supera {LARGO_MAX_EXTRA} caracteres")
+
+        if problemas:
+            errores.append(f"Fila {n_fila} ({f['id_caso'] or 'sin id'}): " + "; ".join(problemas))
+            continue
+        if len(validas) >= MAX_EXTRA:
+            errores.append(f"Fila {n_fila}: se superó el máximo de {MAX_EXTRA} casos extra.")
+            continue
+
+        f["calificacion"] = calif
+        f["origen_dato"] = "equipo"
+        vistos.add(f["id_caso"])
+        validas.append(f)
+    return pd.DataFrame(validas, columns=COLUMNAS), errores
+
+
+def corpus_del_equipo(base: pd.DataFrame) -> pd.DataFrame:
+    """Suma al corpus base los casos válidos del equipo y muestra el resumen en la barra lateral."""
+    extra, aviso = config.leer_pestana(PESTANA_EXTRA, COLUMNAS)
+    if extra is None:
+        if aviso:
+            st.sidebar.warning(aviso)
+        return base
+
+    validas, errores = validar_extra(extra, set(base["id_caso"]))
+    with st.sidebar:
+        if len(validas):
+            st.success(f"Casos extra del equipo: {len(validas)} agregados.")
+        if errores:
+            with st.expander(f"⚠️ {len(errores)} fila(s) de '{PESTANA_EXTRA}' ignoradas"):
+                for e in errores:
+                    st.write(f"- {e}")
+    return pd.concat([base, validas], ignore_index=True) if len(validas) else base
+
+
 def armar_sistema(cfg: dict, corpus: pd.DataFrame) -> str:
     casos = corpus[["id_caso", "afirmacion_central", "calificacion", "explicacion"]]
     corpus_txt = json.dumps(casos.to_dict(orient="records"), ensure_ascii=False)
@@ -126,7 +208,11 @@ def mostrar_resultado(r: dict, caso):
             st.caption(f"🚩 Señales de alerta: {caso['senales_alerta']}")
         if caso["fuente_url"]:
             st.markdown(f"🔗 Fuente: {caso['fuente_url']}")
-        st.caption(f"Caso verificado del corpus: {caso['id_caso']}")
+        if caso["origen_dato"] == "equipo":
+            st.caption(f"Caso agregado por tu equipo: {caso['id_caso']} "
+                       "(verificado por el equipo, no por la plantilla)")
+        else:
+            st.caption(f"Caso verificado del corpus: {caso['id_caso']}")
     elif not r["chequeable"]:
         st.subheader("No se puede verificar")
         st.write(CATEGORIAS.get(r["categoria_inchequeable"], ""))
@@ -157,7 +243,7 @@ def main():
         st.stop()
 
     st.write(cfg["texto_bienvenida"])
-    corpus = cargar_corpus()
+    corpus = corpus_del_equipo(cargar_corpus())
 
     ejemplos = ["(escribir mi propio mensaje)"] + corpus["texto_viral"].tolist()
     elegido = st.selectbox("Probar con un mensaje de ejemplo", ejemplos)
